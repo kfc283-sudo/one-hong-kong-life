@@ -109,7 +109,7 @@ Copyright in the original publications belongs to the Government of the Hong Kon
 
 Some figures are modified by this project: interpolated between published age bands, fitted, or combined into yearly chances. Those figures are this project's own, they are marked as estimates on the method page, and they are not published C&SD statistics.
 
-**No endorsement.** This is an independent personal project, not affiliated with any organisation. It was not produced, endorsed or sponsored by the Government of the HKSAR, the Legislative Council or any body named above. It uses no logos or emblems. Figures may be out of date or simplified, so check the original publication where it matters.
+**Independent.** This is an independent personal project. It is not affiliated with or endorsed by any organisation, including those whose figures it uses. Figures may be out of date or simplified, so check the original publication where it matters.
 
 **Inspiration.** The idea and the shape of this piece come from [1 in 8 Billion](https://1in8b.life), where you become one of the babies being born somewhere in the world right now, at real birth odds, and live that life year by year. This piece borrows its way of working: one life dealt at real odds, lived a year at a time, a sourced figure under each moment, companions born the same day, pauses to reflect, and a card at the end. It is unaffiliated with that site and its operator, and shares none of its code, text or artwork.
 

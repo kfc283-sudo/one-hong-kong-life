@@ -1508,8 +1508,8 @@ window.SCENARIO = (() => {
       {
         title: T('聲明', 'Disclaimer'),
         text: T(
-          '本作品為獨立的個人項目，與任何機構無關，亦並非由香港特別行政區政府、立法會或上述任何機構製作、認可或贊助。數字可能已過時或經過簡化，如有需要，請查閱原來的出版物。',
-          'This is an independent personal project, not affiliated with any organisation. It was not produced, endorsed or sponsored by the Hong Kong Government, the Legislative Council or any body named above. Figures may be out of date or simplified; check the original publication where it matters.',
+          '本作品為獨立的個人項目，與任何機構無關，亦未獲任何機構認可，包括其數字所出自的機構。數字可能已過時或經過簡化，如有需要，請查閱原來的出版物。',
+          'This is an independent personal project. It is not affiliated with or endorsed by any organisation, including those whose figures it uses. Figures may be out of date or simplified; check the original publication where it matters.',
         ),
       },
       {
