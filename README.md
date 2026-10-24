@@ -2,9 +2,11 @@
 
 A life simulation built on Hong Kong public statistics. The first scenario is **Turning 65 in Hong Kong**: you are dealt one person's 65th birthday in the real census proportions, and you live the years that follow, one at a time, at published odds. It is bilingual, in Traditional Chinese (the default) and English.
 
-<img src="docs/screenshot.png" alt="One year of a simulated life: a pixel scene of a street, the line 'You got your Senior Citizen Card and used the $2 fare concession for the first time', and a shaded box with the sourced fact behind it" width="420">
+**Play it:** https://kfc283-sudo.github.io/one-hong-kong-life/ (English: [?lang=en](https://kfc283-sudo.github.io/one-hong-kong-life/?lang=en))
 
-Every number a reader sees sits in a shaded box with a link to its source. How those numbers are strung into a life is this project's own model, and the method page says so.
+<img src="docs/screenshot.png" alt="One year of a simulated life at 66: a pixel street scene, the line 'You got your Senior Citizen Card, and took the $2 bus to visit an old friend', and a shaded box with the 2026 change to the $2 Scheme and its government source" width="420">
+
+Every statistic a reader sees sits in a shaded box with a link to its source. How those numbers are strung into a life is this project's own model, and the method page says so.
 
 ## How it works
 
