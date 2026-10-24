@@ -49,7 +49,7 @@ window.SCENARIO = (() => {
     carer: T('照顧者支援專線 182 183，24小時有社工接聽。', 'The carer support hotline 182 183 is answered by social workers, 24 hours a day.'),
     family: T('家人可致電照顧者支援專線 182 183，24小時有社工接聽。', 'Family members can call the carer support hotline 182 183, answered by social workers 24 hours a day.'),
     elder: T('擔心長者安全？社會福利署熱線 2343 2255。', 'Worried about an older person\'s safety? SWD hotline 2343 2255.'),
-    scam: T('懷疑受騙？「防騙易」熱線 18222。', 'Worried about a scam? The Anti-Scam Helpline is 18222.'),
+    scam: T('懷疑受騙？「防騙易」熱線 18222。', 'Think you are being scammed? The Anti-Scam Helpline is 18222.'),
   };
 
   // Probability of dying between exact age x and x+1, ages 65..99 (C&SD life table 2023).
@@ -263,10 +263,14 @@ window.SCENARIO = (() => {
   }
   function carerWord(s) { return s.flags.carer === 'child' && s.hasChild ? child(s) : T('另一半', 'partner'); }
 
+  // Lines that ask a lot of the body: not soon after an injury, a broken hip or a stroke, and not from 80.
+  const hurt = (s) => s.flags.hurtAge !== undefined && s.age - s.flags.hurtAge <= 1;
+  const sturdy = (s) => s.age < 80 && !hurt(s) && !s.flags.hip && s.flags.strokeAge === undefined && s.stats.health >= 55;
   function fresh(s, rng, key, list) {
     const used = s.used[key] || (s.used[key] = []);
-    let free = list.map((_, j) => j).filter((j) => !used.includes(j));
-    if (!free.length) { used.length = 0; free = list.map((_, j) => j); }
+    // A null in the list is a line that does not fit this life right now (see sturdy).
+    let free = list.map((_, j) => j).filter((j) => list[j] && !used.includes(j));
+    if (!free.length) { used.length = 0; free = list.map((_, j) => j).filter((j) => list[j]); }
     const i = free[Math.floor(rng() * free.length)];
     used.push(i);
     return list[i];
@@ -299,7 +303,7 @@ window.SCENARIO = (() => {
         s.stats.spirits += 2; s.stats.people += 1;
         return {
           text: T('你拿到了長者咭，坐$2巴士去探老朋友。', 'You got your Senior Citizen Card, and took the $2 bus to visit an old friend.'),
-          fact: T('由2026年4月3日起，$2計劃有所調整：成人車費$10或以下的行程付$2；$10以上的行程，可獲全費80%的折扣。', 'From 3 April 2026 the $2 Scheme changed: trips with an adult fare of $10 or below cost $2, and trips above $10 get an 80 per cent discount on the full fare.'),
+          fact: T('由2026年4月3日起，$2計劃有所調整：成人車費$10或以下的行程付$2；$10以上的行程，可獲全費80%的折扣。', 'From 3 April 2026 the $2 Scheme changed: trips with an adult fare of $10 or below cost $2, and trips above $10 get an 80% discount on the full fare.'),
           src: ['fare'],
         };
       },
@@ -340,7 +344,7 @@ window.SCENARIO = (() => {
     {
       id: 'job', once: true, when: (s) => !s.working && s.age <= 72 && s.stats.money < 35 && !s.flags.ltc, p: () => 0.15, // ASSUMPTION
       run: () => ({
-        text: T('街坊介紹你去一間茶餐廳做早更兼職。', 'A neighbour told you about a part-time morning shift at a cha chaan teng.'),
+        text: T('街坊介紹你去一間茶餐廳做早更兼職。', 'A neighbour told you about a part-time morning shift at a café.'),
         fact: T('勞工處的中高齡就業計劃下，聘用60歲或以上求職者的僱主，可申請每月最高$5,000的在職培訓津貼，為期6至12個月。', 'Under the Labour Department\'s Employment Programme for the Elderly and Middle-aged, employers who hire job seekers aged 60 or above can receive a training allowance of up to $5,000 a month for 6 to 12 months.'),
         src: ['epem'],
         choice: {
@@ -414,7 +418,7 @@ window.SCENARIO = (() => {
         s.flags.dm = true; s.stats.health -= 3;
         return {
           text: fresh(s, rng, 'dm', [
-            T('驗血發現你的血糖偏高，醫生確診了糖尿病。營養師教你看食物標籤，你開始在白飯裡加一半糙米。', 'A blood test showed high blood sugar, and the doctor confirmed diabetes. A dietitian showed you how to read food labels, and you started mixing brown rice into your white.'),
+            T('驗血發現你的血糖偏高，醫生確診了糖尿病。營養師教你看食物標籤，你開始在白飯裡加一半糙米。', 'A blood test showed high blood sugar, and the doctor confirmed diabetes. A dietitian showed you how to read food labels, and you started making your rice half white, half brown.'),
             T('普通科門診的醫生說你的血糖一直偏高，確診了糖尿病。護士教你用血糖機，你把每次的讀數寫在一本小簿裡。', 'The doctor at the general outpatient clinic said your blood sugar had stayed high, and confirmed diabetes. A nurse taught you to use a glucose meter, and you write every reading in a little notebook.'),
           ]),
           fact: T('2020-22年，65至74歲人士中有17.1%曾經醫生診斷患有糖尿病，75至84歲為23.5%。', 'In 2020-22, 17.1% of people aged 65-74 had been diagnosed with diabetes by a doctor, and 23.5% of those aged 75-84.'),
@@ -468,7 +472,7 @@ window.SCENARIO = (() => {
       run: (s) => {
         s.flags.cataract = true;
         return {
-          text: T('看報紙越來越吃力。醫生說是白內障，轉介你去眼科。', 'Reading the newspaper was getting harder. The doctor said it was cataract and referred you to the eye clinic.'),
+          text: T('看報紙越來越吃力。醫生說是白內障，轉介你去眼科。', 'Reading the newspaper was getting harder. The doctor said it was cataracts and referred you to the eye clinic.'),
           fact: T('公立醫院在2023-24年度做了26,479宗白內障手術。2024年，手術輪候時間中位數為14個月；最緊急的個案約一個月內做手術。', 'Public hospitals carried out 26,479 cataract operations in 2023-24. In 2024 the median wait for surgery was 14 months; the most urgent cases had surgery within about a month.'),
           src: ['cataract_annex', 'cataract'],
           choice: {
@@ -500,7 +504,7 @@ window.SCENARIO = (() => {
             prompt: T('你怎樣照顧膝頭？', 'How will you look after your knees?'),
             options: [
               { label: T('參加康健中心的運動班', 'Join the exercise class at the health centre'), auto: 0.7, apply: (s) => { s.stats.health += 3; s.stats.people += 2; return T('物理治療師教你一套鍛鍊大腿肌肉的運動。你在班上認識了兩個同樣膝頭痛的朋友，三個人慢慢行上山。', 'A physiotherapist taught you exercises to strengthen your thighs. You made two friends in the class with the same sore knees, and the three of you walk up the hill together, slowly.'); } },
-              { label: T('看私家骨科', 'See a private specialist'), auto: 0.3, ok: (s) => s.stats.money >= 35, apply: (s) => { s.stats.money -= 8; s.stats.health += 3; return T('打了針，再做了幾次物理治療，膝頭舒服了些。你又去行山了，只是揀短一點的路線。', 'After an injection and some physiotherapy your knees felt easier. You went back to hiking, choosing shorter trails.'); } },
+              { label: T('看私家骨科', 'See a private orthopaedic specialist'), auto: 0.3, ok: (s) => s.stats.money >= 35, apply: (s) => { s.stats.money -= 8; s.stats.health += 3; return T('打了針，再做了幾次物理治療，膝頭舒服了些。你又去行山了，只是揀短一點的路線。', 'After an injection and some physiotherapy your knees felt easier. You went back to hiking, choosing shorter trails.'); } },
             ],
           },
         };
@@ -512,6 +516,7 @@ window.SCENARIO = (() => {
         const injured = rng() < injFall(s.age) / ANY_FALL;
         s.stats.health -= injured ? 8 : 2;
         s.flags.fell = true;
+        if (injured) s.flags.hurtAge = s.age;
         let text;
         if (injured && s.hard && !s.flags.hardKind && rng() < 0.5) {
           s.stats.health -= 8; s.flags.hip = true; startHard(s, 'hip'); s.flags.admits.push(s.age);
@@ -525,7 +530,7 @@ window.SCENARIO = (() => {
         ]);
         else text = fresh(s, rng, 'fallNear', [
           T('你在家中絆了一下，扶著椅背站了一會，心跳才慢慢平復。', 'You tripped at home and stood holding the back of a chair until your heart slowed.'),
-          T('落雨天，你在大廈外的斜路滑了一下，幸好扶住了欄杆。之後你出門都帶把長柄遮，當拐杖用。', 'On a wet day you slipped on the slope outside your building and caught the railing. Since then you take an umbrella to lean on.'),
+          T('落雨天，你在大廈外的斜路滑了一下，幸好扶住了欄杆。之後你出門都帶把長柄遮，當拐杖用。', 'On a wet day you slipped on the slope outside your building and caught the railing. Since then you take a long-handled umbrella with you to lean on.'),
           s.arrangement === 'alone'
             ? T('半夜起身去廁所，你在走廊踢到一張櫈。第二日，你把櫈搬走，又買了一盞夜燈。', 'Getting up in the night, you stumbled over a stool in the corridor. The next day you moved the stool and bought a night light.')
             : T('半夜起身去廁所，你在走廊踢到一張櫈。第二日，家人在走廊裝了一盞夜燈。', 'Getting up in the night, you stumbled over a stool in the corridor. The next day your family put in a night light.'),
@@ -544,7 +549,7 @@ window.SCENARIO = (() => {
         s.stats.health += 2;
         return s.housing === 'prh'
           ? { text: T('你通知了屋邨辦事處。等了一陣子，工人來替你在浴室裝了扶手，沒有收費。', 'You let the estate office know. After a while, workers came to fit grab rails in your bathroom, free of charge.'), fact: T('公屋住戶如有60歲或以上的長者，只要通知屋邨辦事處，便可免費安排浴室扶手等簡單改裝。', 'Public housing households with members aged 60 or above can have simple adaptations, such as bathroom grab rails, arranged free of charge by notifying their estate office.'), src: ['adaptations'] }
-          : { text: T('你申請了資助，把浴室換上防滑地磚，又加了扶手和沐浴椅。你仍然慢慢扶著扶手才轉身。', 'You applied for a grant and had non-slip tiles, grab bars and a shower seat fitted in your bathroom. You still turn slowly, one hand on the rail.'), fact: T('符合入息及資產限額的60歲或以上自住業主，每名合資格業主最高可獲$80,000資助，用於防滑地磚、扶手等長者友善改裝。', 'Owner-occupiers aged 60 or above who meet the income and asset limits can each receive up to $80,000 for age-friendly alterations such as non-slip tiles and grab bars.'), src: ['adaptations'] };
+          : { text: T('你申請了資助，把浴室換上防滑地磚，又加了扶手和沐浴椅。你仍然慢慢扶著扶手才轉身。', 'You applied for a grant and had non-slip tiles, grab rails and a shower seat fitted in your bathroom. You still turn slowly, one hand on the rail.'), fact: T('符合入息及資產限額的60歲或以上自住業主，每名合資格業主最高可獲$80,000資助，用於防滑地磚、扶手等長者友善改裝。', 'Owner-occupiers aged 60 or above who meet the income and asset limits can each receive up to $80,000 for age-friendly alterations such as non-slip tiles and grab rails.'), src: ['adaptations'] };
       },
     },
     {
@@ -557,7 +562,7 @@ window.SCENARIO = (() => {
         return {
           text: fresh(s, rng, 'hospital', [
             T('你因肺炎入院一個星期。病房有點嘈，你睡得不好，但姑娘每朝都叫你的名字，跟你說聲早晨。', 'You spent a week in hospital with pneumonia. The ward was noisy and you slept badly, but every morning the nurse greeted you by name.'),
-            T('你發高燒不退，入了醫院驗血。原來是細菌感染，打了幾日抗生素就出院。', 'A fever that would not go down took you into hospital for tests. It was an infection, and after a few days of antibiotics you went home.'),
+            T('你發高燒不退，入了醫院驗血。原來是細菌感染，打了幾日抗生素就出院。', 'A fever that would not go down took you into hospital for tests. It was a bacterial infection, and after a few days of antibiotics you went home.'),
             T('你一連幾日頭暈，入了醫院觀察。醫生調整了你的藥，出院時護士把覆診日期和藥單逐樣解釋給你聽。', 'Several days of dizzy spells took you into hospital for observation. The doctor adjusted your medicines, and when you left the nurse went through the follow-up date and the medicines with you one by one.'),
             T('天氣太熱，你脫了水，在醫院吊了兩日鹽水。出院後，鄰居每日都提你飲多啲水。', 'The heat left you dehydrated, and you spent two days on a drip in hospital. Afterwards a neighbour reminded you every day to drink more water.'),
             T('你因為尿道炎入院住了幾日。出院時，護士提你每日要飲夠水。', 'A urinary infection kept you in hospital for a few days. When you left, the nurse reminded you to drink enough every day.'),
@@ -610,7 +615,7 @@ window.SCENARIO = (() => {
           T('半夜醒來，你習慣地伸手去拍拍旁邊的枕頭。', 'Waking in the night, you reached out to the other pillow out of habit.'),
         ]);
         return {
-          text: T(`你的${who.zh}在醫院離開了，你一直握著${po.zh}的手。${after.zh}`, `Your ${who.en} died in hospital, with you holding ${po.en === 'his' ? 'his' : 'her'} hand. ${after.en}`),
+          text: T(`你的${who.zh}在醫院離開了，你一直握著${po.zh}的手。${after.zh}`, `Your ${who.en} passed away in hospital, with you holding ${po.en === 'his' ? 'his' : 'her'} hand. ${after.en}`),
           fact: T('2021年，75至84歲的女性中有46.3%喪偶，男性則為11.2%。', 'In 2021, 46.3% of women aged 75-84 were widowed, compared with 11.2% of men.'),
           src: ['census_older'],
           help: HELP.talk,
@@ -646,7 +651,7 @@ window.SCENARIO = (() => {
             prompt: T('你會怎樣安排？', 'How will you manage?'),
             options: [
               { label: T('申請日間護理', 'Apply for day care'), auto: 0.6, apply: (x) => { x.stats.spirits += 3; return T(`社工為你們做了評估。之後每星期有兩日，你的另一半去日間護理中心，你可以去街市、飲杯茶。`, 'A social worker assessed your needs. Now two days a week your partner goes to a day care centre, and you get to the market and a cup of tea.'); } },
-              { label: T('自己照顧', 'Manage on your own'), auto: 0.4, apply: (x) => { x.stats.health -= 2; x.stats.people += 1; return T('你說自己應付得來。只是夜晚起身的次數多了，你在手機記下照顧者專線的號碼。', 'You said you could manage. You get up more often in the night now, and you saved the carer hotline number in your phone.'); } },
+              { label: T('自己照顧', 'Manage on your own'), auto: 0.4, apply: (x) => { x.stats.health -= 2; x.stats.people += 1; return T('你說自己應付得來。只是夜晚起身的次數多了，你在手機記下照顧者支援專線的號碼。', 'You said you could manage. You get up more often in the night now, and you saved the carer support hotline number in your phone.'); } },
             ],
           },
         };
@@ -744,12 +749,12 @@ window.SCENARIO = (() => {
       id: 'guangdong', once: true, when: (s) => s.age >= 66 && s.age <= 78 && (s.flags.oala || s.age >= 70) && !s.flags.ltc, p: () => 0.02, // ASSUMPTION
       run: () => ({
         text: T('鄰居搬了去中山，說想換個環境，退休後在那邊種種菜。她問你有沒有興趣一起去。', 'A neighbour moved to Zhongshan, wanting a change of scene, and now grows vegetables there. She asked if you would like to come too.'),
-        fact: T('在廣東計劃下，合資格長者移居廣東後可領取高齡津貼或長者生活津貼；受惠人數由2021-22年度的19,509人增至2024-25年度的26,077人。', 'Under the Guangdong Scheme, eligible older people can keep receiving their allowance while living in Guangdong; beneficiaries rose from 19,509 in 2021-22 to 26,077 in 2024-25.'),
+        fact: T('在廣東計劃下，合資格長者移居廣東後可領取高齡津貼或長者生活津貼；受惠人數由2021-22年度的19,509人增至2024-25年度的26,077人。', 'Under the Guangdong Scheme, eligible older people can keep receiving the Old Age Allowance or the Old Age Living Allowance while living in Guangdong; beneficiaries rose from 19,509 in 2021-22 to 26,077 in 2024-25.'),
         src: ['gd_scheme'],
         choice: {
           prompt: T('搬過去嗎？', 'Move across?'),
           options: [
-            { label: T('留在香港', 'Stay in Hong Kong'), auto: 0.85, apply: (s) => { s.stats.people += 1; return T('你說還是捨不得茶樓的老伙記，還有街市那檔最好的薑。', 'You said you could not leave your regulars at the tea house, or the stall at the market with the best ginger.'); } },
+            { label: T('留在香港', 'Stay in Hong Kong'), auto: 0.85, apply: (s) => { s.stats.people += 1; return T('你說還是捨不得茶樓的老伙記，還有街市那檔最好的薑。', 'You said you could not leave the waiters you had known for years at the tea house, or the stall at the market with the best ginger.'); } },
             { label: T('搬去廣東', 'Move to Guangdong'), auto: 0.15, apply: (s) => { s.flags.gd = true; s.stats.money += 6; s.stats.people -= 4; s.stats.spirits += 2; return T('你搬到中山，住在那位鄰居附近。回港覆診時，順道和家人吃飯。', 'You moved to Zhongshan, near your old neighbour. When you come back for check-ups, you have dinner with family.'); } },
           ],
         },
@@ -765,7 +770,7 @@ window.SCENARIO = (() => {
           text: s.flags.inHome
             ? T('你開始記不起剛說過的話。院舍的姑娘請了醫生來看，醫生說是早期認知障礙症；家人也趕來陪你。', 'You began to lose track of what you had just said. The care home staff asked a doctor to see you, who said it was early dementia, and your family came.')
             : rng.pick([
-              T('幾個月來，你常常一時說不出字，又忘記覆診日子。轉介之後等了一段時間，記憶診所的醫生說是早期認知障礙症。', 'For months you had been losing words and missing appointments. After a referral and some months of waiting, a memory clinic doctor said it was early dementia.'),
+              T('幾個月來，你常常一時說不出字，又忘記覆診日子。轉介之後等了一段時間，記憶診所的醫生說是早期認知障礙症。', 'For months you had been losing words and missing appointments. After a referral and a wait, a memory clinic doctor said it was early dementia.'),
               T('你在行了三十年的街市回家途中迷了路，一位相熟的檔主陪你走回家。之後做了評估，醫生說是早期認知障礙症。', 'On the way home from the market you had used for thirty years, you lost your way. A stallholder who knew you walked you home. After an assessment, the doctor said it was early dementia.'),
               s.arrangement === 'alone'
                 ? T('你一個星期內兩次忘記熄爐。鄰居聞到焦味來敲門，之後社工安排你做評估，醫生說是早期認知障礙症。', 'Twice in one week you left the stove on. A neighbour smelled burning and knocked; a social worker then arranged an assessment, and the doctor said it was early dementia.')
@@ -880,7 +885,7 @@ window.SCENARIO = (() => {
           carer: [
             T(`凌晨三點，你聽到廚房煲水的聲音：照顧你的${who.zh}又睡不著。`, `At three in the morning you heard the kettle in the kitchen: your ${who.en}, who looks after you, could not sleep again.`),
             T(`${who.zh}先是停了晚上的課，之後連每星期的麻雀也不打了。你們都沒有多講。`, `Your ${who.en} gave up the evening class, and then the weekly mahjong. Neither of you said much about it.`),
-            T(`日間中心每星期有三日位。其餘幾日，所有事都由${who.zh}一手包辦。`, `The day centre had a place three days a week. On the other days your ${who.en} did everything.`),
+            T(`日間護理中心每星期有三日位。其餘幾日，所有事都由${who.zh}一手包辦。`, `The day care centre had a place three days a week. On the other days your ${who.en} did everything.`),
           ],
           wait: [
             T('輪候宿位的日子很長。家居照顧的職員每星期來兩次，其餘時間，家人輪流請假。', 'The wait for a place was long. Home care workers came twice a week; the rest of the time the family took turns to take leave.'),
@@ -899,7 +904,7 @@ window.SCENARIO = (() => {
           hip: T('慢慢地，你行到升降機大堂，再行到樓下的長櫈。你再沒有行得像以前那麼遠，但那張長櫈成了你的位置。', 'Slowly you got as far as the lift lobby, then the bench downstairs. You never walked as far as you used to, but the bench became yours.'),
           money: T('過了一段時間，你開始講得出口。你在中心把經過講給其他人聽，希望他們比你早一步收線。', 'In time you could talk about it. At the centre you told the others what had happened, so they would hang up sooner than you had.'),
           alone: T('有一朝，你又落樓飲茶。沒有人大驚小怪，伙記只是把你那杯茶放下。', 'One morning you went down for tea again. Nobody made a fuss; the waiter just put your cup down.'),
-          carer: T(`一個星期的暫託服務，讓${who.zh}睡了幾晚好覺。回來時仍然累，但精神好了一點。`, `A week of respite care gave your ${who.en} a few nights' sleep. Still tired, but a little more themselves.`),
+          carer: T(`一個星期的暫託服務，讓${who.zh}睡了幾晚好覺。回來時仍然累，但精神好了一點。`, `A week of respite care gave your ${who.en} a few nights' sleep. Still tired, but a little more like their old self.`),
           wait: T('你仍在輪候，但日子有了規律：星期二、五職員上門，星期日一家人吃飯。', 'You were still waiting, but the weeks had found a shape: the care workers on Tuesdays and Fridays, family dinner on Sundays.'),
         }[k];
         return { text };
@@ -915,13 +920,13 @@ window.SCENARIO = (() => {
       T(`你接${gk(s).zh}放學，路上買了一串魚蛋給${gkPron(s).zh}。`, `You picked your ${gk(s).en} up from school and bought a skewer of fish balls on the way home.`),
       T(`${gk(s).zh}放學後在你家做功課。那些數學題你看不明白，就負責切橙。`, `Your ${gk(s).en} did homework at your place after school. The maths was beyond you, so you were in charge of cutting oranges.`),
       T(`你帶${gk(s).zh}去公園踩單車，自己坐在長櫈上大聲打氣。`, `You took your ${gk(s).en} cycling in the park and cheered loudly from the bench.`),
-      T(`每個平日下午都由你照顧${gk(s).zh}，直到${child(s).zh}放工來接。你們一齊看卡通片，一齊食下午茶。`, `Every weekday afternoon you look after your ${gk(s).en} until your ${child(s).en} comes from work. You watch cartoons and have tea together.`),
+      sturdy(s) ? T(`每個平日下午都由你照顧${gk(s).zh}，直到${child(s).zh}放工來接。你們一齊看卡通片，一齊食下午茶。`, `Every weekday afternoon you look after your ${gk(s).en} until your ${child(s).en} comes home from work. You watch cartoons and have tea together.`) : null,
     ]) }; } },
     { id: 'gk_baby', daily: true, gap: 2, rep: 3, when: (s) => hasGk(s) && near(s) && s.gkAge <= 3 && !s.flags.ltc, p: () => 0.4, run: (s, rng) => { s.stats.spirits += 2; return { text: fresh(s, rng, 'gkBaby', [
       T(`你抱著${gk(s).zh}哄${gkPron(s).zh}睡覺，哼起你小時候聽過的兒歌。`, `You rocked your ${gk(s).en} to sleep, humming a nursery rhyme from your own childhood.`),
       T(`${child(s).zh}放工前，你幫手湊${gk(s).zh}。${gkPron(s).zh}扶著梳化站了起來，剛好給你看見。`, `You minded your ${gk(s).en} until your ${child(s).en} finished work, and were there to see the first time the baby stood up holding the sofa.`),
       T(`你替${gk(s).zh}揀了一對學行鞋。${gkPron(s).zh}跌了兩次，又自己爬起來。`, `You chose a first pair of shoes for your ${gk(s).en}, who fell twice and got up again each time.`),
-      T(`${child(s).zh}兩公婆都要返工，星期一至五由你湊${gk(s).zh}。你和${gkPron(s).zh}一齊午睡，一齊醒。`, `Your ${child(s).en} and partner both work, so you mind your ${gk(s).en} every weekday. The two of you nap at the same time and wake together.`),
+      sturdy(s) ? T(`${child(s).zh}兩公婆都要返工，星期一至五由你湊${gk(s).zh}。你和${gkPron(s).zh}一齊午睡，一齊醒。`, `Your ${child(s).en} and partner both work, so you mind your ${gk(s).en} every weekday. The two of you nap at the same time and wake together.`) : null,
     ]) }; } },
     { id: 'gk_teen', daily: true, gap: 3, rep: 2, when: (s) => hasGk(s) && near(s) && s.gkAge >= 13 && s.gkAge <= 18 && !s.flags.inHome, p: () => 0.3, run: (s, rng) => { s.stats.people += 2; return { text: fresh(s, rng, 'gkTeen', [
       T(`${gk(s).zh}考試前溫書到深夜。你煲了一碗湯，靜靜放在${gkPron(s).zh}枱面。`, `Your ${gk(s).en} was studying late before exams. You made a bowl of soup and left it quietly on the desk.`),
@@ -966,11 +971,11 @@ window.SCENARIO = (() => {
     { id: 'child_away', daily: true, gap: 2, rep: 4, when: (s) => s.childAway && !s.flags.inHome, p: (s) => (s.focus === 'people' ? 0.45 : 0.3), run: (s, rng) => { s.stats.people += 2; return { text: fresh(s, rng, 'childAway', [
       AWAY[s.awayCity].far
         ? T(`${child(s).zh}${why(s).zh}。${childPron(s).zh}那邊是晚上，你這邊是早上；${childPron(s).zh}一放工就打電話來，你一邊吃早餐一邊同${childPron(s).zh}傾。`, `Your ${child(s).en} ${why(s).en}. ${childPron(s).en === 'she' ? 'Her' : 'His'} evening is your morning, so the call comes just as you sit down to breakfast.`)
-        : T(`${child(s).zh}${why(s).zh}。每晚九點，${childPron(s).zh}都準時打電話來，問你今日吃了甚麼。`, `Your ${child(s).en} ${why(s).en}. At nine every evening the call comes, asking what you had for dinner.`),
+        : T(`${child(s).zh}${why(s).zh}。每晚九點，${childPron(s).zh}都準時打電話來，問你今日吃了甚麼。`, `Your ${child(s).en} ${why(s).en}. At nine every evening the call comes, asking what you ate today.`),
       T(`長者中心的義工教你用手機視像通話。第一次就見到${child(s).zh}在${city(s).zh}向你揮手。`, `A volunteer at the elderly centre helped you set up video calls. First try, there was your ${child(s).en} in ${city(s).en}, waving.`),
       T(`${child(s).zh}${why(s).zh}。對面單位的街坊每次去街市，都順道問你要不要帶些餸。`, `Your ${child(s).en} ${why(s).en}. The neighbour across the landing asks if you need anything every time she goes to the market.`),
       T(`你在電話裡教${child(s).zh}煲你拿手的湯。${childPron(s).zh}在${city(s).zh}的廚房照著做，拍了相給你看。`, `On the phone you talked your ${child(s).en} through your best soup. ${childPron(s).en === 'she' ? 'She' : 'He'} made it in a kitchen in ${city(s).en} and sent you a photo.`),
-    ].concat(s.chinese ? [T(`${child(s).zh}今年回來過年。一家人去飲茶，${childPron(s).zh}搶著埋單，你扮作不肯，心裡很高興。`, `Your ${child(s).en} came home for Lunar New Year. At yum cha ${childPron(s).en} grabbed the bill; you protested, secretly delighted.`)] : [])
+    ].concat(s.chinese ? [T(`${child(s).zh}今年回來過年。一家人去飲茶，${childPron(s).zh}搶著埋單，你扮作不肯，心裡很高興。`, `Your ${child(s).en} came home for Lunar New Year. At dim sum ${childPron(s).en} grabbed the bill; you protested, secretly delighted.`)] : [])
       .concat(hasGk(s) ? [T(`${gk(s).zh}在視像裡唱了一首學校教的歌給你聽，你叫${gkPron(s).zh}再唱一次。`, `On a video call your ${gk(s).en} sang you a song from school, and you asked for it again.`)] : [])) }; } },
     // A partner, while alive; a partner remembered, after.
     { id: 'walk', daily: true, gap: 3, rep: 3, when: (s) => s.spouse && !s.flags.ltc && !s.flags.partnerCare, p: () => 0.3, run: (s, rng) => { s.stats.people += 2; s.stats.spirits += 1; return { text: fresh(s, rng, 'walk', [
@@ -980,7 +985,7 @@ window.SCENARIO = (() => {
       T('你們一齊整理舊相簿，為某張相是哪一年影的爭論了半日。', 'You sorted the old photo albums together and spent half a day arguing about the year one picture was taken.'),
     ]) }; } },
     { id: 'remember', daily: true, gap: 3, rep: 2, when: (s) => s.flags.widowed && s.age - s.flags.widowAge >= 2, p: () => 0.3, run: (s, rng) => { s.stats.spirits += 1; return { text: fresh(s, rng, 'remember', [
-      T(`另一半的生忌，你煮了${partnerPron(s).zh}最鍾意的餸，擺多一對筷子。`, `On your partner's birthday you cooked ${partnerPron(s).en} favourite dish and set out an extra pair of chopsticks.`),
+      T(`另一半的生忌，你煮了${partnerPron(s).zh}最鍾意的餸，擺多一對筷子。`, `On what would have been your partner's birthday you cooked ${partnerPron(s).en} favourite dish and set out an extra pair of chopsticks.`),
       T('你在抽屜裡找到另一半寫給你的舊信，坐在床邊讀了一遍又一遍。', 'You found an old letter from your partner in a drawer and read it again and again, sitting on the bed.'),
     ].concat(s.flags.dementia || s.flags.ltc ? [] : [T('你學會了另一半以前做的事：自己去交水費，自己換燈膽。', 'You learned to do the things your partner used to do: paying the water bill, changing a light bulb.')])) }; } },
     { id: 'stroke_after', daily: true, once: true, when: (s) => s.flags.strokeAge !== undefined && s.age - s.flags.strokeAge >= 1 && s.age - s.flags.strokeAge <= 4 && !s.flags.inHome, p: () => 0.6, run: (s, rng) => ({ text: rng.pick([
@@ -992,7 +997,7 @@ window.SCENARIO = (() => {
       T('治療完結兩年，你仍然容易累，但開始重新計劃去旅行。', 'Two years after treatment you still tire easily, but you have started planning a trip again.'),
     ]) }) },
     // Neighbourhood and community: loose gates, as long as the person still lives at home.
-    { id: 'tai_chi', daily: true, gap: 3, rep: 3, when: (s) => !s.flags.ltc && s.stats.health >= 40, p: (s) => (s.focus === 'health' ? 0.4 : 0.25), run: (s, rng) => { s.stats.health += 1; return { text: fresh(s, rng, 'taiChi', [
+    { id: 'tai_chi', daily: true, gap: 3, rep: 3, when: (s) => !s.flags.ltc && s.stats.health >= 40 && !hurt(s), p: (s) => (s.focus === 'health' ? 0.4 : 0.25), run: (s, rng) => { s.stats.health += 1; return { text: fresh(s, rng, 'taiChi', [
       T('你每朝去公園打太極。那班老朋友總會等齊人才開始。', 'Every morning you do tai chi in the park. The group always waits until everyone has arrived.'),
       T('太極班的師傅讚你的「雲手」有板有眼了。', 'The tai chi teacher said your "cloud hands" have really taken shape.'),
       T('落雨天，大家改去長者中心的活動室打太極，打完一齊飲杯茶。', 'On rainy days the group moves to the activity room at the elderly centre, with a cup of tea afterwards.'),
@@ -1011,8 +1016,8 @@ window.SCENARIO = (() => {
       T('你在公園看人捉象棋，忍不住出聲提點，結果被叫坐低捉一盤。', 'Watching a game of Chinese chess in the park, you could not help giving advice, and were invited to sit down and play.'),
       T('公園的老朋友教你玩一種新的紙牌遊戲，你輸了三局才搞清楚規則。', 'Friends in the park taught you a new card game. You lost three rounds before you understood the rules.'),
     ]) }; } },
-    { id: 'hike', daily: true, gap: 3, rep: 2, when: (s) => !s.flags.ltc && s.stats.health >= 55 && s.age < 80, p: (s) => (s.focus === 'health' ? 0.3 : 0.15), run: (s, rng) => { s.stats.health += 1; s.stats.spirits += 1; return { text: fresh(s, rng, 'hike', [
-      T('你和行山的朋友行了一段麥理浩徑，在山頂分著食橙。', 'You walked a section of the MacLehose Trail with your hiking friends and shared oranges at the top.'),
+    { id: 'hike', daily: true, gap: 3, rep: 2, when: (s) => !s.flags.ltc && sturdy(s), p: (s) => (s.focus === 'health' ? 0.3 : 0.15), run: (s, rng) => { s.stats.health += 1; s.stats.spirits += 1; return { text: fresh(s, rng, 'hike', [
+      s.age < 76 ? T('你和行山的朋友行了一段麥理浩徑，在山頂分著食橙。', 'You walked a section of the MacLehose Trail with your hiking friends and shared oranges at the top.') : null,
       T('你們揀了一條平路的郊遊徑，沿路有人介紹每種樹的名字。', 'The group chose a level nature trail, and someone named every tree along the way.'),
       T('夏天，你每朝七點去公眾泳池游幾個塘，救生員都認得你。', 'All summer you swam a few lengths at the public pool at seven each morning. The lifeguards know you by now.'),
     ]) }; } },
@@ -1023,7 +1028,7 @@ window.SCENARIO = (() => {
       T('你在公共圖書館借了幾本大字版小說，一個星期就看完。', 'You borrowed a few large-print novels from the public library and finished them within a week.'),
     ]) }; } },
     { id: 'help_out', daily: true, gap: 3, rep: 2, when: (s) => !s.flags.ltc && !s.flags.dementia && s.stats.health >= 45 && !(s.flags.strokeAge !== undefined && s.age - s.flags.strokeAge < 2) && !s.flags.hip, p: (s) => (s.focus === 'help' ? 0.4 : 0.12), run: (s, rng) => { s.stats.spirits += 2; s.stats.people += 1; return { text: fresh(s, rng, 'helpOut', [
-      T('你幫隔籬屋的婆婆把一袋米抬上樓，她堅持要你帶兩個橙走。', 'You carried a bag of rice upstairs for the elderly woman next door, and she insisted you take two oranges.'),
+      sturdy(s) ? T('你幫隔籬屋的婆婆把一袋米抬上樓，她堅持要你帶兩個橙走。', 'You carried a bag of rice upstairs for the elderly woman next door, and she insisted you take two oranges.') : null,
       T('樓下的街坊入了醫院，你幫手餵了兩個星期貓。', 'A neighbour downstairs went into hospital, and you fed the cat for two weeks.'),
       T('你每星期去長者中心一次，陪幾位行動不便的會員傾偈。', 'Once a week you go to the elderly centre to chat with members who find it hard to get about.'),
       T('你教鄰居的小朋友捉象棋。小朋友贏了你一盤，開心到跳起。', 'You taught the neighbours\' child Chinese chess, and the child jumped for joy after winning a game.'),
@@ -1076,7 +1081,7 @@ window.SCENARIO = (() => {
     } },
     { id: 'new_year', daily: true, gap: 3, rep: 2, when: (s) => s.chinese && !s.flags.inHome, p: () => 0.25, run: (s, rng) => { s.stats.spirits += 2; return { text: fresh(s, rng, 'newYear', [
       T('農曆新年，你逐個後生派利是，大家都說你氣色好。', 'At Lunar New Year you handed a red packet to each of the young ones, and everyone said you looked well.'),
-      T('年廿八洗邋遢，你把屋企抹得乾乾淨淨，再貼上新揮春。', 'Before Lunar New Year you cleaned the flat from top to bottom and put up new couplets.'),
+      T('年廿八洗邋遢，你把屋企抹得乾乾淨淨，再貼上新揮春。', 'On the 28th of the twelfth lunar month you cleaned the flat from top to bottom and put up new couplets.'),
       T('年初二開年，你煮了一大鍋髮菜蠔豉，親戚朋友都來拜年。', 'On the second day of the new year you cooked a big pot of dried oysters with black moss, and relatives and friends came to visit.'),
     ]) }; } },
     { id: 'mid_autumn', daily: true, once: true, when: (s) => s.chinese && !s.flags.inHome, p: () => 0.2, run: (s) => { s.stats.spirits += 2; return { text: hasGk(s) && near(s) && s.gkAge <= 12
@@ -1102,9 +1107,9 @@ window.SCENARIO = (() => {
       T('公司新來的後生仔有不明白的地方都來問你，你把幾十年的竅門教給他。', 'The new young colleague comes to you whenever something is unclear, and you pass on decades of know-how.'),
       T('同事知道你生日，午飯時買了個蛋糕給你。', 'Your colleagues found out it was your birthday and brought a cake at lunchtime.'),
     ]) }; } },
-    { id: 'hometown', daily: true, gap: 3, rep: 2, when: (s) => s.born === 'mainland' && s.chinese && !s.flags.ltc && s.age < 85, p: () => 0.25, run: (s, rng) => { s.stats.people += 2; return { text: fresh(s, rng, 'hometown', [
+    { id: 'hometown', daily: true, gap: 3, rep: 2, when: (s) => s.born === 'mainland' && s.chinese && !s.flags.ltc && s.age < 85 && !hurt(s), p: () => 0.25, run: (s, rng) => { s.stats.people += 2; return { text: fresh(s, rng, 'hometown', [
       T('清明節，你回鄉下拜山，順道探望表弟一家。村口那棵榕樹還在。', 'At Ching Ming you went back to your home village to tend the family graves, and visited your cousin\'s family. The banyan tree at the village gate is still there.'),
-      T('你回鄉下飲表姪的喜酒，席上很多人都要你講香港的事。', 'You went back to your home village for a young relative\'s wedding, and everyone at the table wanted to hear about Hong Kong.'),
+      T('你回鄉下飲表姪的喜酒，席上很多人都要你講香港的事。', 'You went back to your home village for your cousin\'s son\'s wedding, and everyone at the table wanted to hear about Hong Kong.'),
     ]) }; } },
     { id: 'dialect', daily: true, once: true, when: (s) => s.born === 'mainland' && s.chinese && !s.flags.inHome, p: () => 0.2, run: (s) => { s.stats.people += 2; return { text: T('你在街市用家鄉話問價，原來檔主同你是同鄉。之後他總會留最靚的菜給你。', 'At the market you asked a price in your home dialect, and the stallholder turned out to be from the same county. Now he always keeps the best greens for you.') }; } },
     { id: 'community', daily: true, gap: 2, rep: 4, when: (s) => !s.chinese && !s.flags.inHome, p: () => 0.35, run: (s, rng) => { s.stats.people += 2; return { text: fresh(s, rng, 'community', [
@@ -1116,13 +1121,13 @@ window.SCENARIO = (() => {
     { id: 'interpreter', daily: true, once: true, when: (s) => !s.chinese && s.age >= 68, p: () => 0.3, run: (s) => { s.stats.health += 1; return { text: T('覆診時，醫院安排了傳譯員。你可以把身體的情況一五一十講清楚。', 'At your hospital appointment an interpreter was arranged, and you could explain properly how you were feeling.') }; } },
     // Cared for at home.
     { id: 'helper_day', daily: true, gap: 2, rep: 3, when: (s) => s.flags.carer === 'helper' && !s.flags.inHome, p: () => 0.4, run: (s, rng) => { s.stats.spirits += 1; return { text: fresh(s, rng, 'helperDay', [
-      T(`${s.helper}每朝推你落樓下公園，你們一齊看人打太極。`, `Every morning ${s.helper} takes you down to the park, and you watch the tai chi together.`),
+      T(`${s.helper}每朝推你落樓下公園，你們一齊看人打太極。`, `Every morning ${s.helper} wheels you down to the park, and you watch the tai chi together.`),
       T(`${s.helper}學會了煲你最鍾意的粟米湯，你說她煲得比你好。`, `${s.helper} learned to make your favourite sweetcorn soup, and you told her hers is better than yours.`),
       T(`${s.helper}教你講幾句她家鄉的話，你每朝都用來同她講早晨。`, `${s.helper} taught you a few words of her language, and you use them to say good morning to her every day.`),
     ]) }; } },
     { id: 'day_care', daily: true, gap: 2, rep: 3, when: (s) => s.flags.ltc && !s.flags.inHome && s.flags.carer !== 'helper', p: () => 0.35, run: (s, rng) => { s.stats.people += 1; return { text: fresh(s, rng, 'dayCare', [
       T('上門的護理員教你坐在椅上做伸展，你每朝都跟著做一次。', 'The home care worker showed you some stretches to do sitting down, and you do them every morning.'),
-      T('你在日間中心和隔籬的婆婆分著食砵仔糕，兩個人講了一個下午。', 'At the day centre you shared a bowl pudding with the woman beside you and talked all afternoon.'),
+      T('你在日間護理中心和隔籬的婆婆分著食砵仔糕，兩個人講了一個下午。', 'At the day care centre you shared a bowl pudding with the woman beside you and talked all afternoon.'),
       T('社工上門探你，帶來一本大字的月曆，幫你寫低每次覆診的日子。', 'A social worker visited with a large-print calendar and helped you mark your appointments on it.'),
     ]) }; } },
     { id: 'dem_moment', daily: true, gap: 2, rep: 3, when: (s) => s.flags.dementia, p: () => 0.35, run: (s, rng) => { s.stats.spirits += 1; return { text: fresh(s, rng, 'demMoment', [
@@ -1132,7 +1137,7 @@ window.SCENARIO = (() => {
     ]) }; } },
     // In a care home.
     { id: 'home_visit', daily: true, gap: 2, rep: 4, when: (s) => s.flags.inHome, p: () => 0.5, run: (s, rng) => { s.stats.people += 2; return { text: fresh(s, rng, 'homeVisit', [
-      T(s.chinese ? '院舍的姑娘記得你喜歡聽粵曲，下午替你開了收音機。' : '院舍的姑娘記得你喜歡聽音樂，下午替你開了收音機。', s.chinese ? 'The care home staff remember you like Cantonese opera, and put the radio on for you in the afternoon.' : 'The care home staff remember you like music, and put the radio on for you in the afternoon.'),
+      T(s.chinese ? '院舍的姑娘記得你喜歡聽粵曲，下午替你開了收音機。' : '院舍的姑娘記得你喜歡聽音樂，下午替你開了收音機。', s.chinese ? 'The care home staff remembered you like Cantonese opera, and put the radio on for you in the afternoon.' : 'The care home staff remembered you like music, and put the radio on for you in the afternoon.'),
       T('院舍搞中秋晚會，你坐在前排，手裡拿著一盞小燈籠。', 'The care home held a Mid-Autumn party. You sat in the front row holding a little lantern.'),
       T('隔籬床的院友每朝都同你講天氣。你們開始一齊看早晨新聞。', 'The resident in the next bed tells you the weather every morning. Now the two of you watch the morning news together.'),
       T('院舍的治療師帶大家做早操，你坐在椅上舉手踢腳。', 'The therapist led morning exercises, and you lifted your arms and legs from your chair.'),
@@ -1140,8 +1145,8 @@ window.SCENARIO = (() => {
       T('一班中學生義工來院舍表演，有個女孩坐在你身邊彈琴。', 'A group of secondary-school volunteers came to perform, and a girl played the piano beside you.'),
     ]) }; } },
     { id: 'home_give', daily: true, once: true, when: (s) => s.flags.inHome && !s.flags.dementia, p: () => 0.4, run: (s) => { s.stats.spirits += 3; return { text: s.chinese
-      ? T('你教院舍一位年輕護理員唱一段《帝女花》。她唱錯了詞，全層的人都笑了。', 'You taught a young care worker a few lines of Cantonese opera. She got the words wrong, and the whole floor laughed.')
-      : T('你教院舍一位年輕護理員煮一道你家鄉的菜。她記下了每一步，說要煮給家人吃。', 'You taught a young care worker a dish from your home country. She wrote down every step and said she would cook it for her family.') }; } },
+      ? T('你教院舍一位年輕護理員唱一段《帝女花》。她唱錯了詞，全層的人都笑了。', 'You taught a young care worker a few lines of Dai Nui Fa, the Cantonese opera. She got the words wrong, and the whole floor laughed.')
+      : T('你教院舍一位年輕護理員煮一道你家鄉的菜。她記下了每一步，說要煮給家人吃。', 'You taught a young care worker a dish from your hometown. She wrote down every step and said she would cook it for her family.') }; } },
     { id: 'family_visit', daily: true, gap: 2, rep: 3, when: (s) => s.flags.inHome && near(s), p: () => 0.45, run: (s, rng) => { s.stats.people += 2; return { text: fresh(s, rng, 'famVisit', [
       T('星期日，家人來院舍陪你吃午飯，大家搶著替你夾餸。', 'On Sunday your family came to the care home for lunch and took turns putting food in your bowl.'),
       T(`${child(s).zh}帶了你最鍾意的叉燒包來，陪你在院舍花園坐了一個下午。`, `Your ${child(s).en} brought your favourite barbecue pork buns and sat with you in the care home garden all afternoon.`),
@@ -1234,7 +1239,7 @@ window.SCENARIO = (() => {
       T(`65歲那天，你${ARR_LABEL[s.start].zh}，住在${houseLabel(s).zh}。`, `On your 65th birthday you were ${ARR_LABEL[s.start].en}, at home in ${houseLabel(s).en}.`),
     ];
     if (s.flags.dementia) out.push(T('你患上了認知障礙症。這不是任何人可以選擇的。', 'You developed dementia. Nobody chooses that.'));
-    if (s.flags.widowed) out.push(T('你的另一半比你先走。', 'Your partner died before you.'));
+    if (s.flags.widowed) out.push(T('你的另一半比你先走。', 'Your partner passed away before you.'));
     if (s.flags.ltc && !s.flags.dementia) out.push(T('你的身體需要別人照顧。', 'Your body came to need someone else\'s care.'));
     return out;
   }
@@ -1242,14 +1247,14 @@ window.SCENARIO = (() => {
   function epilogue(s) {
     return [
       s.sex === 'M'
-        ? T('按2023年的生命表，65歲的男性平均可活到約86歲；實際上，有人早一些，有人遲很多。', 'On the 2023 life table, a man turning 65 in Hong Kong can expect to live to about 86; in real life some people live a good deal shorter and some a good deal longer.')
-        : T('按2023年的生命表，65歲的女性平均可活到約90歲；實際上，有人早一些，有人遲很多。', 'On the 2023 life table, a woman turning 65 in Hong Kong can expect to live to about 90; in real life some people live a good deal shorter and some a good deal longer.'),
+        ? T('按2023年的生命表，65歲的男性平均可活到約86歲；實際上，有人早很多，有人遲很多。', 'On the 2023 life table, a man turning 65 in Hong Kong can expect to live to about 86; in real life some people die a good deal earlier and some live a good deal longer.')
+        : T('按2023年的生命表，65歲的女性平均可活到約90歲；實際上，有人早很多，有人遲很多。', 'On the 2023 life table, a woman turning 65 in Hong Kong can expect to live to about 90; in real life some people die a good deal earlier and some live a good deal longer.'),
     ];
   }
 
   // ------------------------------------------------------------------ charts
   // Shares for the intro chart, computed from the same census counts the opening draw uses.
-  const ARR_SHORT = { alone: T('獨居', 'Living alone'), spouse: T('只與配偶同住', 'With spouse only'), spouse_kids: T('與配偶及子女同住', 'With spouse and children'), kids: T('與子女同住', 'With children'), other: T('與其他親人同住', 'With other relatives') };
+  const ARR_SHORT = { alone: T('獨居', 'Living alone'), spouse: T('只與配偶同住', 'With spouse only'), spouse_kids: T('與配偶和子女同住', 'With spouse and children'), kids: T('與子女同住', 'With children'), other: T('與其他親人同住', 'With other relatives') };
   const HOUSE_SHORT = { prh: T('公屋', 'Public rental'), hos: T('資助出售單位', 'Subsidised sale'), private: T('私人樓宇', 'Private'), other: T('其他', 'Other') };
   // "Today in Hong Kong" on the opening screen: official yearly totals spread evenly over the year
   // (C&SD tables 110-01001, 110-01002 and 115-01011). People aged 65 at mid-2026 stand in for those who turn 65 in a year;
@@ -1509,15 +1514,16 @@ window.SCENARIO = (() => {
       },
       {
         title: T('靈感', 'Inspiration'),
+        link: { href: 'https://1in8b.life', label: '1in8b.life' },
         text: T(
-          '靈感來自 1 in 8 Billion（1in8b.life），一個以真實統計模擬「在世界任何地方出生」的網站。本作品與該網站及其營運者並無關係，亦沒有使用其程式碼、文字或圖像。',
-          'Inspired by 1 in 8 Billion (1in8b.life), which simulates being born anywhere in the world from real statistics. This piece is unaffiliated with that site and its operator, and shares none of its code, text or artwork.',
+          '這件作品的構思和形式都來自 1 in 8 Billion（1in8b.life）。在那裡，你按真實的出生機率，成為此刻在世界某處出生的一個嬰兒，再一年一年活下去。這裡借用了它的做法：按真實機率分派一個人生、逐年經歷、每個時刻附上有出處的數字、同日出生的同伴、中途停下來想一想，以及最後的一張人生卡。本作品與該網站及其營運者並無關係，亦沒有使用其程式碼、文字或圖像。',
+          'The idea and the shape of this piece come from 1 in 8 Billion (1in8b.life), where you become one of the babies being born somewhere in the world right now, at real birth odds, and live that life year by year. This piece borrows its way of working: one life dealt at real odds, lived a year at a time, a sourced figure under each moment, companions born the same day, pauses to reflect, and a card at the end. It is unaffiliated with that site and its operator, and shares none of its code, text or artwork.',
         ),
       },
       {
         title: T('製作工具', 'How it was made'),
         text: T(
-          '本作品運用人工智能工具，把政府統計和已發表的研究整理成一段段人生；內容由作者決定，每個數字都逐一與來源核對。圖像全部以程式繪製，沒有使用其他來源的圖片。只使用你裝置上已有的字型，不載入第三方程式。不設廣告，不收集個人資料；你寫下的字只會留在你的裝置上，語言和顯示設定只儲存在這個瀏覽器。',
+          '本作品運用人工智能工具，把政府統計和已發表的研究整理成一段段人生；內容由作者決定，每個數字都逐一與來源核對。圖像全部以程式繪製，沒有使用其他來源的圖片。只使用你裝置上已有的字體，不載入第三方程式。不設廣告，不收集個人資料；你寫下的字只會留在你的裝置上，語言和顯示設定只儲存在這個瀏覽器。',
           'It was built with the help of AI tools, turning government statistics and published research into lives you can step through. The author decided what goes in and checked every figure against its source. All pictures are drawn in code; no images come from elsewhere. The page uses only fonts already on your device and loads no third-party scripts. No ads, and no personal data is collected; anything you write stays on your device, and your language and display settings are saved in this browser only.',
         ),
       },
@@ -1529,7 +1535,7 @@ window.SCENARIO = (() => {
     dailyCap: (s) => (inHard(s) ? 1 : 2),
     method: METHOD, drawNote, summary, status, scene, households, survival, calibrate, today: TODAY,
     title: T('65歲，在香港', 'Turning 65 in Hong Kong'),
-    version: '0.11.0', // bump when events or figures change: a ?seed= link replays only within one version
+    version: '0.12.0', // bump when events or figures change: a ?seed= link replays only within one version
     tagline: T('今天是你65歲生日。之後的日子，會是怎樣？', 'Today is your 65th birthday. What will the years ahead hold?'),
     intro: T(
       '你和誰同住、住在哪類房屋，都按2021年人口普查中香港長者的真實比例設定。之後每一年發生的事，都依照公開統計的機會出現。淺色方格裡的數字都有出處；至於怎樣把這些數字串成一段人生，是本作品自己設計的模型。',

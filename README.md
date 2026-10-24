@@ -111,7 +111,7 @@ Some figures are modified by this project: interpolated between published age ba
 
 **No endorsement.** This is an independent personal project, not affiliated with any organisation. It was not produced, endorsed or sponsored by the Government of the HKSAR, the Legislative Council or any body named above. It uses no logos or emblems. Figures may be out of date or simplified, so check the original publication where it matters.
 
-**Inspiration.** The idea comes from 1 in 8 Billion (1in8b.life), a web game that simulates being born anywhere in the world from real statistics. This project is unaffiliated with it and shares none of its code, text or artwork.
+**Inspiration.** The idea and the shape of this piece come from [1 in 8 Billion](https://1in8b.life), where you become one of the babies being born somewhere in the world right now, at real birth odds, and live that life year by year. This piece borrows its way of working: one life dealt at real odds, lived a year at a time, a sourced figure under each moment, companions born the same day, pauses to reflect, and a card at the end. It is unaffiliated with that site and its operator, and shares none of its code, text or artwork.
 
 **How it was made.** It was built with Claude Code (Anthropic). I decided what goes in and checked the figures against their sources. Using the tool does not imply endorsement by Anthropic.
 

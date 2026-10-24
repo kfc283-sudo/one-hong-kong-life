@@ -111,9 +111,10 @@
   button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .check { display: flex; gap: 10px; align-items: flex-start; margin-top: 18px; max-width: 640px; cursor: pointer; }
   .check input { width: 20px; height: 20px; margin-top: 4px; accent-color: var(--accent); }
-  .record .fresh { animation: arrive .5s ease-out; }
+  .record .fresh { animation: arrive .5s ease-out backwards; }
   @keyframes arrive { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .record .fresh { animation: none; } }
+  @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .record .fresh { animation: appear .2s linear backwards; } }
   .fact .src { display: block; margin-top: 4px; font-size: .8rem; }
   .help { background: var(--help); color: var(--help-ink); border-radius: 6px; padding: 8px 10px; margin-top: 6px; font-size: .88rem; }
   .helpTag { font-weight: 600; }

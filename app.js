@@ -17,7 +17,7 @@
   // the year lived at age N. Nothing the reader writes is ever put in a link.
   const params = new URLSearchParams(location.search);
   const urlLang = ['zh', 'en'].includes(params.get('lang')) ? params.get('lang') : null;
-  const urlSeed = /^\d{1,9}$/.test(params.get('seed') || '') ? Number(params.get('seed')) : null;
+  const urlSeed = /^\d{1,10}$/.test(params.get('seed') || '') ? Number(params.get('seed')) : null;
   const capture = params.has('capture');
   const capAge = /^\d{2,3}$/.test(params.get('capture') || '') ? Number(params.get('capture')) : null;
   if (capture) document.documentElement.classList.add('capture');
@@ -33,12 +33,20 @@
   // During play each year stays on screen long enough to read: a short beat, plus reading time for
   // what the year added (about 6 Chinese characters or 3 English words a second), divided by the speed.
   const BEAT_MS = 3000;
+  // A year's new moments appear one after another, this far apart (a choice's outcome follows its
+  // moment more quickly). The year's progress line starts only once the last one is on screen.
+  const STAGGER_MS = 1600, FOLLOW_MS = 700;
+  let shownTo = 0, revealEnd = 0;
+  const revealLead = () => Math.max(0, revealEnd - performance.now());
+  // Open a dialog only once the moments behind it are on screen.
+  const later = (fn) => { const ms = revealLead(); if (ms) setTimeout(fn, ms); else fn(); };
 
   // Set at launch. REPO: the public repository, linked from the footer. COUNTER: a GoatCounter
   // count endpoint (https://<code>.goatcounter.com/count). With it set, the page sends two plain
   // totals, a life started and a life finished: no cookies, no script, nothing about the reader,
   // and nothing from replay links, capture mode or a local copy. The totals are not shown on the page.
   const REPO = 'https://github.com/kfc283-sudo/one-hong-kong-life';
+  const SITE = 'https://kfc283-sudo.github.io/one-hong-kong-life/'; // printed on the share card
   const AUTHOR = 'Paulo Chak'; // "made by", shown on the method page
   const AUTHOR_URL = 'https://www.linkedin.com/in/paulo-chak/';
   const COUNTER = '';
@@ -55,7 +63,7 @@
     start: T('踏入65歲', 'Turn 65'),
     gentle: T('溫和模式：喪偶、認知障礙症等較沉重的時刻，會寫得簡短一些', 'Gentle mode: heavier moments, such as losing a partner or dementia, are told more briefly'),
     note: T('疾病、離別和死亡會按真實比率出現，但不會詳細描寫。你在這裡寫下的字不會離開這個頁面。', 'Illness, loss and death happen at their real rates but are never shown in detail. Nothing you type leaves this page.'),
-    method: T('數據和方法', 'About the numbers'),
+    method: T('數據和方法', 'The numbers and methods'),
     today: T('今天', 'Today'),
     whereFrom: T('這段人生是怎樣設定的', 'How this life was set up'),
     sameDay: T('同一天踏入65歲的人', 'Turning 65 on the same day'),
@@ -72,7 +80,8 @@
     decideForMe: T('由遊戲代我決定', 'Decide for me'),
     pausesToggle: T('停下來想一想', 'Stop to reflect'),
     playHint: T('按「播放」，歲月就會流過；在幾個時刻，由你作決定。', 'Press Play and the years go by. At a few moments, you decide.'),
-    focusNote: T('你的重點只會稍為改變機會，不會決定發生甚麼。', 'Your focus nudges the odds a little. It never decides what happens.'),
+    focusNote: T('你的重點會令某些日常時刻較常出現，例如家庭聚會、運動或做義工，但不會決定發生甚麼。', 'Your focus makes some everyday moments more likely, such as family meals, exercise or volunteering. It never decides what happens.'),
+    statsNote: T('這些數字隨經歷升降。健康和經濟會影響某些活動和選項是否可行；四項都不會改變疾病或壽命。', 'These move with what happens. Health and money decide whether some activities and options are open; none of the four changes illness or how long the life lasts.'),
     focusOff: T('灰色的選項，在人生這個階段已不適用。', 'Greyed-out options no longer fit this stage of life.'),
     decidedForYou: T('由遊戲代為決定：', 'decided for you: '),
     letGameDecide: T('之後都由遊戲代我決定', 'Let the game decide from now on'),
@@ -100,6 +109,8 @@
     share: T('分享這段人生', 'Share this life'),
     saveCard: T('下載圖片', 'Save image'),
     copy: T('複製文字', 'Copy text'),
+    oneMoment: (a) => T(`${a}歲那年`, `At ${a}`),
+    sameStart: T('用同一個開始，活一次：', 'Live it from the same start:'),
     copied: T('已複製。', 'Copied.'),
     sources: T('數字從哪裡來', 'Where the numbers come from'),
     usedSources: (n, m) => T(`這段人生用上了${m}個出處之中的${n}個。`, `This life drew on ${n} of the ${m} sources behind the simulation.`),
@@ -108,7 +119,7 @@
     helpLabel: T('支援', 'Support'),
     language: T('English', '中文'),
     languageName: T('Switch to English', '轉為中文'),
-    methodTitle: T('數據和方法', 'About the numbers'),
+    methodTitle: T('數據和方法', 'The numbers and methods'),
     frameTitle: T('一個前提', 'One assumption above all'),
     assumeTitle: T('本作品的估計', 'What this piece estimates'),
     leftOutTitle: T('沒有包括的', 'What is left out'),
@@ -164,6 +175,8 @@
     for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) n.append(k.nodeType ? k : String(t(k)));
     return n;
   };
+  // A credit's text with each mention of its link label turned into the link.
+  const linked = (text, link) => (link ? text.split(link.label).flatMap((p, i) => (i ? [el('a', { href: link.href, target: '_blank', rel: 'noopener' }, link.label), p] : [p])) : text);
   const sourceLink = (key) => {
     const s = sc.sources[key];
     return s ? el('a', { href: s.url, target: '_blank', rel: 'noopener' }, t(s.label)) : null;
@@ -265,6 +278,8 @@
   function begin() {
     const seed = urlSeed ?? (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
     me = new Life(sc, makeRng(seed), { gentle });
+    me.seed = seed;
+    shownTo = 0; revealEnd = 0;
     companions = [1, 2, 3].map((i) => new Life(sc, makeRng(seed + i * 7919), { gentle }));
     focus = sc.focuses[0].id;
     reflections = [];
@@ -299,7 +314,7 @@
       el('div', { class: 'grid' },
         el('div', { class: 'side' },
           el('div', { class: 'card' }, el('h2', {}, t(UI.focusOn)), el('p', { class: 'muted small' }, t(UI.focusNote)), el('div', { id: 'focus', class: 'row', role: 'group', 'aria-label': t(UI.focusOn) }), el('p', { id: 'focusOff', class: 'muted small', hidden: '' }, t(UI.focusOff))),
-          el('div', { class: 'card' }, el('h2', {}, t(UI.howThings)), el('div', { id: 'stats' })),
+          el('div', { class: 'card' }, el('h2', {}, t(UI.howThings)), el('div', { id: 'stats' }), el('p', { class: 'muted small' }, t(UI.statsNote))),
           el('div', { class: 'card' }, el('h2', {}, t(UI.sameBirthday)), el('ul', { id: 'comp', class: 'companions' }))),
         el('div', { class: 'maincol' },
           el('div', { id: 'scene', class: 'scene' }),
@@ -333,7 +348,9 @@
       if (k >= 0) { let j = k + 1; while (me.record[j] && me.record[j].follow) j++; view = me.record.slice(0, j); from = k; }
     }
     if (window.Scenes) window.Scenes.show(document.getElementById('scene'), sc.scene(s, view, lang), lang);
-    document.getElementById('age').textContent = ageText(capAge ?? s.age);
+    // The age shown is the year on screen: the moments just lived, not the birthday after them.
+    const onScreen = me.record.length ? me.record[me.record.length - 1].age : s.age;
+    document.getElementById('age').textContent = ageText(capAge ?? onScreen);
     document.getElementById('focusOff').hidden = sc.focuses.every((x) => !x.ok || x.ok(s));
     document.getElementById('focus').replaceChildren(...sc.focuses.map((x) => {
       const ok = !x.ok || x.ok(s);
@@ -348,15 +365,29 @@
     document.getElementById('comp').replaceChildren(...companions.map((c) =>
       el('li', {}, el('strong', {}, t(c.s.name)), ' · ', c.dead ? el('span', { class: 'muted' }, t(UI.diedAt(c.s.age))) : `${ageText(c.s.age)}, ${t(sc.status(c.s))}`)));
     const rec = document.getElementById('rec');
-    rec.replaceChildren(...view.slice(from).map((e, i) => entryView(e, !capture && i + from >= yearStart)).reverse());
+    // Only moments not yet shown animate in, so redrawing (a focus click) does not replay them.
+    const start = Math.max(yearStart || 0, shownTo);
+    let at = -1;
+    // A skip ahead adds many years at once: those arrive in a quick ripple instead.
+    const quick = view.length - start > 8;
+    const delays = view.map((e, i) => {
+      if (capture || i < start) return false;
+      at = at < 0 ? 0 : at + (quick ? 60 : (e.follow ? FOLLOW_MS : STAGGER_MS) / speed);
+      return at;
+    });
+    if (at >= 0) revealEnd = performance.now() + at;
+    shownTo = Math.max(shownTo, view.length);
+    rec.replaceChildren(...view.slice(from).map((e, i) => entryView(e, delays[i + from])).reverse());
   }
 
   // `inTimeline`: no age label (the year heads the group) and the fact box folds away.
+  // `fresh`: false, or the delay in ms before this moment appears.
   function entryView(e, fresh, inTimeline) {
-    const cls = [e.follow ? 'follow' : '', e.kind === 'death' ? 'death' : '', fresh ? 'fresh' : ''].join(' ').trim();
+    const isFresh = typeof fresh === 'number';
+    const cls = [e.follow ? 'follow' : '', e.kind === 'death' ? 'death' : '', isFresh ? 'fresh' : ''].join(' ').trim();
     const fact = e.fact ? el('div', { class: 'fact' }, t(e.fact), ' ',
       el('span', { class: 'src' }, srcKeys(e).flatMap((k, i) => (i ? [' · ', sourceLink(k)] : [sourceLink(k)])))) : null;
-    return el('li', { class: cls },
+    return el('li', { class: cls, ...(isFresh && fresh ? { style: `animation-delay:${Math.round(fresh)}ms` } : {}) },
       e.follow || inTimeline ? null : el('span', { class: 'age' }, ageText(e.age)),
       t(e.text),
       e.chosen ? el('span', { class: 'muted' }, ` (${t(e.autoChosen ? UI.decidedForYou : UI.youChose)}${t(e.chosen)})`) : null,
@@ -365,7 +396,7 @@
   }
 
   function step() {
-    if (me.dead || dlg.open) return;
+    if (me.dead || dlg.open || me.pending) return;
     yearStart = me.record.length;
     me.liveYear(focus, false);
     settle();
@@ -374,7 +405,7 @@
   // Resolve any choice this year raised, then finish the year.
   function settle() {
     while (me.pending) {
-      if (!decide) { render(); return askChoice(me.pending, !!autoTimer); }
+      if (!decide) { render(); return later(() => askChoice(me.pending, !!autoTimer)); }
       autoChoose(me.pending);
     }
     afterYear();
@@ -405,23 +436,23 @@
     catchUp();
     snapYear();
     render();
-    if (me.dead) { stopAuto(); return setTimeout(() => go(ending), 900); }
-    if (pauseDue()) askPause(me.s.age, sc.pauses[me.s.age], !!autoTimer);
+    if (me.dead) { stopAuto(); return setTimeout(() => go(ending), revealLead() + 900); }
+    if (pauseDue()) later(() => { if (!dlg.open) askPause(me.s.age, sc.pauses[me.s.age], !!autoTimer); });
   }
 
   // Skip ahead: to the next choice (or pause), or straight to the end with the game deciding.
   function runUntil(mode) {
     stopAuto();
-    if (me.dead || dlg.open) return;
+    if (me.dead || dlg.open || me.pending) return;
     yearStart = me.record.length;
     for (let i = 0; i < 60 && !me.dead; i++) {
       me.liveYear(focus, false);
-      if (me.pending && mode === 'choice' && !decide) { render(); return askChoice(me.pending, false); }
+      if (me.pending && mode === 'choice' && !decide) { render(); return later(() => askChoice(me.pending, false)); }
       while (me.pending) autoChoose(me.pending);
       catchUp();
       snapYear();
       if (me.dead) break;
-      if (mode === 'choice' && pauseDue()) { render(); return askPause(me.s.age, sc.pauses[me.s.age], false); }
+      if (mode === 'choice' && pauseDue()) { render(); return later(() => askPause(me.s.age, sc.pauses[me.s.age], false)); }
     }
     render();
     if (me.dead) setTimeout(() => go(ending), 600);
@@ -457,7 +488,7 @@
     const letGame = () => { decide = true; store.set('decide', '1'); closeDlg(); autoChoose(entry); settle(); };
     const timer = timed ? startCountdown(Math.max(12, 25 / speed), UI.autoIn, () => { closeDlg(); autoChoose(entry); settle(); }) : [];
     dlg.replaceChildren(...[
-      el('p', { class: 'kicker' }, lang === 'zh' ? ageText(me.s.age) : `Age ${me.s.age}`),
+      el('p', { class: 'kicker' }, lang === 'zh' ? ageText(entry.age) : `Age ${entry.age}`),
       el('p', {}, t(entry.text)),
       entry.fact ? el('div', { class: 'fact' }, t(entry.fact)) : null,
       entry.help ? el('div', { class: 'help' }, t(entry.help)) : null,
@@ -499,11 +530,12 @@
   let waited = false, seenTo = 0;
   // `bar` false: waiting on a dialog, so the progress line stays empty.
   function schedule(ms = yearMs(), bar = true) {
-    clearTimeout(autoTimer); autoTimer = setTimeout(playTick, ms);
+    const lead = bar ? Math.max(0, revealEnd - performance.now()) : 0;
+    clearTimeout(autoTimer); autoTimer = setTimeout(playTick, lead + ms);
     const line = document.querySelector('#yearbar span');
     if (!line) return;
     line.getAnimations().forEach((a) => a.cancel());
-    if (bar) line.animate([{ width: '0%' }, { width: '100%' }], { duration: ms, fill: 'forwards' });
+    if (bar) line.animate([{ width: '0%' }, { width: '100%' }], { duration: ms, delay: lead, fill: 'both' });
   }
   function playTick() {
     if (!autoTimer || me.dead) return;
@@ -536,11 +568,16 @@
     const s = me.s;
     const death = me.record.find((e) => e.kind === 'death');
     const used = new Set(me.record.flatMap(srcKeys));
-    const shareText = () => [
-      `${t(UI.cardTitle)} · ${t(s.name)} · 65–${s.age}`,
-      t(sc.summary(s)),
-      `${t(UI.cardSame)} ${companions.map((c) => `${t(c.s.name)} (${c.s.age})`).join(lang === 'zh' ? '、' : ', ')}`,
-    ].join('\n');
+    const shareText = () => {
+      const m = cardMoment();
+      return [
+        `${t(UI.cardTitle)} · ${t(s.name)} · 65–${s.age}`,
+        t(sc.summary(s)),
+        m ? `${t(UI.oneMoment(m.age))}${lang === 'zh' ? '：' : ': '}${t(m.text)}` : null,
+        `${t(UI.cardSame)} ${companions.map((c) => `${t(c.s.name)} (${c.s.age})`).join(lang === 'zh' ? '、' : ', ')}`,
+        `${t(UI.sameStart)} ${SITE}?seed=${me.seed}&lang=${lang}`,
+      ].filter(Boolean).join('\n');
+    };
     app.replaceChildren(...[topBar(),
       el('p', { class: 'kicker' }, t(UI.lived)),
       el('h1', {}, `${t(s.name)}${lang === 'zh' ? '　' : ', '}65–${s.age}`),
@@ -558,7 +595,7 @@
         el('h2', {}, t(UI.wrote)), ...reflections.filter((r) => r.a).map((r) => el('p', {}, el('span', { class: 'muted' }, t(UI.atAge(r.age))), r.a))) : null,
       el('div', { class: 'card narrow' },
         el('h2', {}, t(UI.share)),
-        el('canvas', { id: 'card', width: '1200', height: '630', role: 'img', 'aria-label': shareText() }),
+        el('canvas', { id: 'card', width: '1200', height: '700', role: 'img', 'aria-label': shareText() }),
         el('div', { class: 'row', style: 'margin-top:10px' },
           el('button', { class: 'primary', onclick: saveCard }, t(UI.saveCard)),
           el('button', { onclick: () => navigator.clipboard && navigator.clipboard.writeText(shareText()).then(() => { document.getElementById('copied').textContent = t(UI.copied); }) }, t(UI.copy)),
@@ -680,6 +717,12 @@
   }
 
   // The share card never names a cause of death or any illness.
+  // One everyday moment of connection for the card: never an illness, a loss or a hard stretch.
+  const WARM = ['yum_cha', 'grandkid', 'gk_baby', 'gk_teen', 'gk_adult', 'first_gk', 'walk', 'child_near', 'child_away', 'outing', 'cook', 'neighbour', 'kind', 'park', 'teahouse', 'market', 'tai_chi', 'learn', 'help_out', 'new_year', 'mid_autumn', 'dumplings', 'solstice', 'community', 'friend', 'family_visit', 'home_visit', 'volunteer', 'academy'];
+  function cardMoment() {
+    const fits = me.record.filter((e) => WARM.includes(e.id) && !e.follow && !e.help && !e.heavy && [...t(e.text)].length <= (lang === 'zh' ? 60 : 150));
+    return fits.length ? fits[(me.s.age * 7) % fits.length] : null;
+  }
   function drawCard() {
     const cv = document.getElementById('card');
     if (!cv || !cv.getContext) return;
@@ -687,8 +730,8 @@
     const s = me.s;
     const serif = lang === 'zh' ? '"Noto Serif TC", "PMingLiU", serif' : 'Georgia, serif';
     const sans = lang === 'zh' ? '"Noto Sans TC", "Microsoft JhengHei", sans-serif' : '"Segoe UI", system-ui, sans-serif';
-    g.fillStyle = '#f6f2ea'; g.fillRect(0, 0, 1200, 630);
-    g.fillStyle = '#a33b2b'; g.fillRect(0, 0, 18, 630);
+    g.fillStyle = '#f6f2ea'; g.fillRect(0, 0, 1200, 700);
+    g.fillStyle = '#a33b2b'; g.fillRect(0, 0, 18, 700);
     // A calm picture on the right: the waterfront at dusk. Never an illness or a hospital.
     if (window.Scenes) {
       const fig = (id, sex) => ({ id, role: 'elder', sex, skin: window.Scenes.SKIN[s.chinese ? t(s.name).length % 2 : 2] });
@@ -706,8 +749,18 @@
     g.fillText(t(UI.cardSame), 590, 340);
     g.fillStyle = '#23201b'; g.font = `26px ${sans}`;
     companions.forEach((c, i) => g.fillText(`${t(c.s.name)}  65 – ${c.s.age}`, 590, 384 + i * 40));
+    const m = cardMoment();
+    if (m) {
+      g.strokeStyle = '#e3dccd'; g.lineWidth = 2; g.beginPath(); g.moveTo(70, 500); g.lineTo(1130, 500); g.stroke();
+      g.fillStyle = '#6f675b'; g.font = `24px ${sans}`; g.fillText(t(UI.oneMoment(m.age)), 70, 542);
+      g.fillStyle = '#23201b'; g.font = `${lang === 'zh' ? '' : 'italic '}26px ${serif}`;
+      wrap(g, t(m.text), 70, 582, 1060, 36);
+    }
     g.fillStyle = '#6f675b'; g.font = `22px ${sans}`;
-    g.fillText(t(UI.kicker), 70, 590);
+    g.fillText(t(UI.kicker), 70, 666);
+    g.fillStyle = '#a33b2b'; g.textAlign = 'right';
+    g.fillText(SITE.replace(/^https:\/\//, '').replace(/\/$/, ''), 1130, 666);
+    g.textAlign = 'left';
   }
   function wrap(g, text, x, y, w, lh) {
     const units = lang === 'zh' ? [...text] : text.split(' ');
@@ -739,7 +792,7 @@
       section(UI.assumeTitle, el('ul', { class: 'plain' }, m.assumptions.map((a) => el('li', {}, t(a))))),
       section(UI.leftOutTitle, el('p', {}, t(m.leftOut))),
       section(UI.allSources, el('ul', { class: 'sources' }, Object.keys(sc.sources).map((k) => el('li', {}, sourceLink(k))))),
-      section(UI.creditTitle, ...m.credits.map((c) => el('div', { class: 'credit' }, el('h3', {}, t(c.title)), el('p', {}, t(c.text)))),
+      section(UI.creditTitle, ...m.credits.map((c) => el('div', { class: 'credit' }, el('h3', {}, t(c.title)), el('p', {}, linked(t(c.text), c.link)))),
         COUNTER ? el('p', { class: 'muted small' }, t(UI.countNote)) : null,
         AUTHOR ? el('p', {}, t(UI.madeBy), ' ', el('a', { href: AUTHOR_URL, rel: 'noopener' }, AUTHOR)) : null,
         el('p', { class: 'muted small' }, t(UI.versionNote(sc.version)), REPO ? [' · ', el('a', { href: REPO, rel: 'noopener' }, t(UI.github))] : null)),
