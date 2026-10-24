@@ -345,7 +345,7 @@ window.SCENARIO = (() => {
       id: 'job', once: true, when: (s) => !s.working && s.age <= 72 && s.stats.money < 35 && !s.flags.ltc, p: () => 0.15, // ASSUMPTION
       run: () => ({
         text: T('街坊介紹你去一間茶餐廳做早更兼職。', 'A neighbour told you about a part-time morning shift at a café.'),
-        fact: T('勞工處的中高齡就業計劃下，聘用60歲或以上求職者的僱主，可申請每月最高$5,000的在職培訓津貼，為期6至12個月。', 'Under the Labour Department\'s Employment Programme for the Elderly and Middle-aged, employers who hire job seekers aged 60 or above can receive a training allowance of up to $5,000 a month for 6 to 12 months.'),
+        fact: T('勞工處的中高齡就業計劃下，聘用60歲或以上求職者的僱主，可申請每月最高$5,000的在職培訓津貼，為期6至12個月。', 'Under the Labour Department\'s Employment Programme for the Elderly and Middle-aged, employers who hire job seekers aged 60 or above can receive an on-the-job training allowance of up to $5,000 a month for 6 to 12 months.'),
         src: ['epem'],
         choice: {
           prompt: T('去試試嗎？', 'Give it a try?'),
@@ -610,7 +610,7 @@ window.SCENARIO = (() => {
         const who = s.sex === 'M' ? T('太太', 'wife') : T('丈夫', 'husband');
         const po = s.sex === 'M' ? T('她', 'her') : T('他', 'his');
         const after = rng.pick([
-          T('屋企忽然靜了下來。', 'Home is suddenly very quiet.'),
+          T('屋企忽然靜了下來。', 'Home suddenly went quiet.'),
           T('那天晚上，你還是煮了兩碗飯。', 'That night you still cooked two bowls of rice.'),
           T('半夜醒來，你習慣地伸手去拍拍旁邊的枕頭。', 'Waking in the night, you reached out to the other pillow out of habit.'),
         ]);
@@ -644,13 +644,13 @@ window.SCENARIO = (() => {
         const who = s.sex === 'M' ? T('太太', 'wife') : T('丈夫', 'husband');
         return {
           text: T(`你的${who.zh}中風後，要人扶著才能行路。現在每朝替${who.zh}梳洗的，是你。`, `After a stroke, your ${who.en} needs a steady arm to walk. Now it is you who helps with washing every morning.`),
-          fact: T('2021年發表的調查顯示，長期病患者的主要照顧者之中，28.9%是他們的配偶。', 'A survey published in 2021 found that 28.9% of people with chronic diseases were looked after mainly by their spouse.'),
+          fact: T('2021年發表的調查顯示，長期病患者的主要照顧者之中，28.9%是他們的配偶。', 'A survey published in 2021 found that, among people with chronic diseases who had someone caring for them, 28.9% were cared for mainly by their spouse.'),
           src: ['str63'],
           help: HELP.carer,
           choice: {
             prompt: T('你會怎樣安排？', 'How will you manage?'),
             options: [
-              { label: T('申請日間護理', 'Apply for day care'), auto: 0.6, apply: (x) => { x.stats.spirits += 3; return T(`社工為你們做了評估。之後每星期有兩日，你的另一半去日間護理中心，你可以去街市、飲杯茶。`, 'A social worker assessed your needs. Now two days a week your partner goes to a day care centre, and you get to the market and a cup of tea.'); } },
+              { label: T('申請日間護理', 'Apply for day care'), auto: 0.6, apply: (x) => { x.stats.spirits += 3; return T(`社工為你們做了評估。之後每星期有兩日，你的另一半去日間護理中心，你可以去街市、飲杯茶。`, 'A social worker assessed your needs. Now two days a week your partner goes to a day care centre, and you can go to the market and have a cup of tea.'); } },
               { label: T('自己照顧', 'Manage on your own'), auto: 0.4, apply: (x) => { x.stats.health -= 2; x.stats.people += 1; return T('你說自己應付得來。只是夜晚起身的次數多了，你在手機記下照顧者支援專線的號碼。', 'You said you could manage. You get up more often in the night now, and you saved the carer support hotline number in your phone.'); } },
             ],
           },
@@ -798,7 +798,7 @@ window.SCENARIO = (() => {
         s.flags.ltc = true; s.stats.health -= 10;
         const options = [];
         if (s.spouse) options.push({ label: T('由另一半照顧', 'Your partner cares for you'), auto: 3, apply: (x) => { x.flags.carer = 'spouse'; x.stats.people += 3; return T('你的另一半成了你的照顧者。其實大家都不年輕了。', 'Your partner became your carer. Neither of you is young any more.'); } });
-        if (s.kidsAtHome) options.push({ label: T('由子女照顧', 'Your children care for you'), auto: 3, apply: (x) => { x.flags.carer = 'child'; x.stats.people += 2; return T(`${child(x).zh}把工作轉成兼職，每日幫你洗澡、陪你吃飯。`, `Your ${child(x).en} moved to part-time work to help you bathe and sit with you at meals.`); } });
+        if (s.kidsAtHome) options.push({ label: T('由子女照顧', 'Your children care for you'), auto: 3, apply: (x) => { x.flags.carer = 'child'; x.stats.people += 2; return T(`${child(x).zh}把工作轉成兼職，每日幫你洗澡、陪你吃飯。`, `Your ${child(x).en} moved to part-time work to help you bathe every day and sit with you at meals.`); } });
         options.push({ label: T('聘請外籍家庭傭工', 'Hire a live-in domestic helper'), auto: 1, ok: (x) => x.stats.money >= 45, apply: (x) => { x.flags.carer = 'helper'; x.stats.money -= 15; return T(`${x.helper}搬進了小房間。頭幾個星期大家都未慣，但她煲的粥很合你口味。她星期日放假，會去中環和朋友聚會。`, `${x.helper} moved into the small room as your live-in helper. The first weeks were strange for both of you, but she makes congee just the way you like it. On Sundays, her day off, she meets her friends in Central.`); } });
         options.push({ label: T('申請資助院舍', 'Apply for a subsidised care home'), auto: 1, apply: (x) => { x.flags.waitlist = x.age; return T('社工為你做了評估，你登記了輪候冊。等候期間，家居照顧服務的職員每星期上門兩次。', 'A social worker assessed your needs and you joined the waiting list. Meanwhile home care workers visit twice a week.'); } });
         return {
@@ -1148,7 +1148,7 @@ window.SCENARIO = (() => {
       ? T('你教院舍一位年輕護理員唱一段《帝女花》。她唱錯了詞，全層的人都笑了。', 'You taught a young care worker a few lines of Dai Nui Fa, the Cantonese opera. She got the words wrong, and the whole floor laughed.')
       : T('你教院舍一位年輕護理員煮一道你家鄉的菜。她記下了每一步，說要煮給家人吃。', 'You taught a young care worker a dish from your hometown. She wrote down every step and said she would cook it for her family.') }; } },
     { id: 'family_visit', daily: true, gap: 2, rep: 3, when: (s) => s.flags.inHome && near(s), p: () => 0.45, run: (s, rng) => { s.stats.people += 2; return { text: fresh(s, rng, 'famVisit', [
-      T('星期日，家人來院舍陪你吃午飯，大家搶著替你夾餸。', 'On Sunday your family came to the care home for lunch and took turns putting food in your bowl.'),
+      T('星期日，家人來院舍陪你吃午飯，大家搶著替你夾餸。', 'On Sunday your family came to the care home for lunch and everyone rushed to put food in your bowl.'),
       T(`${child(s).zh}帶了你最鍾意的叉燒包來，陪你在院舍花園坐了一個下午。`, `Your ${child(s).en} brought your favourite barbecue pork buns and sat with you in the care home garden all afternoon.`),
       T('家人推你去附近的公園行一圈。你說，好耐沒有曬過太陽。', 'Your family wheeled you round the park nearby. You said it had been a long time since you sat in the sun.'),
     ].concat(hasGk(s) && near(s) ? [T(`${gk(s).zh}來院舍探你，給你看手機裡的相片。`, `Your ${gk(s).en} came to the care home and showed you photos on the phone.`)] : [])) }; } },
@@ -1483,7 +1483,7 @@ window.SCENARIO = (() => {
       T('高血壓、糖尿病、冠心病、中風和癌症，按2020-22年人口健康調查各年齡組別的比率出現，組別之間以直線連接。本作品沒有讓這些病改變死亡的機會：生命表本身已經平均計算了它們。所有原因加起來的住院比率，調校至2025年住在家中的65歲或以上人士的16.1%。', 'High blood pressure, diabetes, coronary heart disease, stroke and cancer begin at rates that follow the Population Health Survey 2020-22 by age, linear between age bands. This piece does not let them change the chance of dying: the life table already includes them on average. Hospital stays from every cause together are tuned to the 16.1% of people aged 65 and over living at home who were admitted in 2025.'),
       T('大約每五段人生，就有一段會遇上一段較難熬的日子：跌斷髖骨、積蓄被騙、長時間的孤單、照顧者身心疲累，或輪候院舍較久。幫助仍然會來，但只能令日子好過一點，不一定能解決問題。這個比例是本作品的設定，不是統計數字；它讓人生不會一律順利。', 'In about one life in five, a hard stretch stays hard for a while: a broken hip, savings lost to a scam, a long lonely spell, a carer worn down, or a longer wait for a care home. Help still comes, but it eases things rather than settling them. The share is a setting of this piece, not a statistic; it keeps the lives from all being smooth.'),
       T('「健康、經濟、人際、心情」四項指標是遊戲的設計，不是統計數字。', 'The four bars for health, money, people and spirits are part of the game, not statistics.'),
-      T('住院、輪候完結、感到孤單、情緒低落等事件的頻率，部分是本作品按公開數字作出的估計。', 'How often some events happen, such as a hospital stay, a wait ending, a lonely spell or a period of low mood, is this piece’s estimate based on the published figures.'),
+      T('住院、輪候完結、感到孤單、情緒低落等事件的頻率，部分是本作品按公開數字作出的估計。', 'How often some events happen, such as a hospital stay, a wait ending, a lonely spell or a period of low mood, is partly this piece’s estimate based on the published figures.'),
     ],
     leftOut: T(
       '自殺是部分長者晚年真實而沉重的一部分。本作品沒有把它寫進任何一段人生：在一個按比例設定人生、又讓玩家作選擇的遊戲裡，把它寫成一個事件，會令人覺得它是遊戲安排的，或是某個選擇造成的。遊戲裡有情緒低落的時刻，也有可以求助的人。如果你或身邊的人需要支援，請致電精神健康支援熱線 18111（24小時）。',
@@ -1535,7 +1535,7 @@ window.SCENARIO = (() => {
     dailyCap: (s) => (inHard(s) ? 1 : 2),
     method: METHOD, drawNote, summary, status, scene, households, survival, calibrate, today: TODAY,
     title: T('65歲，在香港', 'Turning 65 in Hong Kong'),
-    version: '0.12.0', // bump when events or figures change: a ?seed= link replays only within one version
+    version: '0.12.1', // bump when events or figures change: a ?seed= link replays only within one version
     tagline: T('今天是你65歲生日。之後的日子，會是怎樣？', 'Today is your 65th birthday. What will the years ahead hold?'),
     intro: T(
       '你和誰同住、住在哪類房屋，都按2021年人口普查中香港長者的真實比例設定。之後每一年發生的事，都依照公開統計的機會出現。淺色方格裡的數字都有出處；至於怎樣把這些數字串成一段人生，是本作品自己設計的模型。',
