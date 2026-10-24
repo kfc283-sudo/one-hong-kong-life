@@ -81,7 +81,7 @@
     pausesToggle: T('停下來想一想', 'Stop to reflect'),
     playHint: T('按「播放」，歲月就會流過；在幾個時刻，由你作決定。', 'Press Play and the years go by. At a few moments, you decide.'),
     focusNote: T('你的重點會令某些日常時刻較常出現，例如家庭聚會、運動或做義工，但不會決定發生甚麼。', 'Your focus makes some everyday moments more likely, such as family meals, exercise or volunteering. It never decides what happens.'),
-    statsNote: T('這些數字隨經歷升降。健康和經濟會影響某些活動和選項是否可行；四項都不會改變疾病或壽命。', 'These move with what happens. Health and money decide whether some activities and options are open; none of the four changes illness or how long the life lasts.'),
+    statsNote: T('這些數字隨經歷升降。健康和經濟會影響某些活動和選項是否可行；至於會否患病、活到幾歲，則按同齡人的公開統計而定，不取決於這些數字。', 'These move with what happens. Health and money decide whether some activities and options are open. Whether illness comes, and how long the life lasts, follow the published rates for people of that age, not these numbers.'),
     focusOff: T('灰色的選項，在人生這個階段已不適用。', 'Greyed-out options no longer fit this stage of life.'),
     decidedForYou: T('由遊戲代為決定：', 'decided for you: '),
     letGameDecide: T('之後都由遊戲代我決定', 'Let the game decide from now on'),
